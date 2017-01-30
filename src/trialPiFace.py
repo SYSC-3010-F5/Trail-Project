@@ -37,7 +37,7 @@ pfio.init()
 
 
 # json dictionary
-data={get_ip_address('eth0')}  # '192.168.0.110'}
+data={'ip': get_ip_address('eth0'), 'port': textport}  # '192.168.0.110'}
 
 
 #flash LEDs

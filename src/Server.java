@@ -17,20 +17,28 @@
 import java.net.*;
 import java.util.Scanner;
 
+
 public class Server {
 
   DatagramSocket receiveSocket;
   DatagramSocket sendSocket;
+  DatagramPacket receivePacket;
+  DatagramPacket sendPacket;
 
-  RPi RPi1 = null;
-  RPi RPi2 = null;
+  RPi RPi1;
+  RPi RPi2;
 
 
   private final static int PACKETSIZE = 100 ;
 
+    Server(){
+        receivePacket = new DatagramPacket( new byte[PACKETSIZE], PACKETSIZE ) ;
+        sendPacket = new DatagramPacket(new byte[PACKETSIZE], PACKETSIZE);
+    }
+
 
 	public static void main(String[] args)
-   {
+    {
 
 
         //Init server
@@ -48,17 +56,22 @@ public class Server {
         //Check for initial RPi connection
         server.initConnection();
 
-   }
+    }
 
-   private initConnection(){
+   private void initConnection(){
+
+       receivePacket();
+       byte[] data = receivePacket.getData();
+       RPi1 = new RPi(0,null);
+
 
    }
 
    private void sendPacket(byte[] data, InetAddress host, int port){
      try
      {
-        DatagramPacket packet = new DatagramPacket( data, data.length, host, port ) ;
-        sendSocket.send( packet ) ;
+        sendPacket = new DatagramPacket( data, data.length, host, port ) ;
+        sendSocket.send( sendPacket ) ;
      }
      catch( Exception e )
      {
@@ -66,15 +79,15 @@ public class Server {
      }
    }
 
-   private void receivePacket(int port){
-       try
-       {
-            System.out.println( "Receiving on port " + port ) ;
-            DatagramPacket packet = new DatagramPacket( new byte[PACKETSIZE], PACKETSIZE ) ;
-            receiveSocket.receive( packet ) ;
+   private void receivePacket(){
+      try
+      {
+            System.out.println( "Receiving on port " + receiveSocket.getPort() ) ;
 
-            System.out.println( packet.getAddress() + " " + packet.getPort() + ": " + new String(packet.getData()).trim() ) ;
-         }
+            receiveSocket.receive( receivePacket ) ;
+
+            System.out.println( receivePacket.getAddress() + " " + receivePacket.getPort() + ": " + new String(receivePacket.getData()).trim() ) ;
+
       }
       catch( Exception e )
       {

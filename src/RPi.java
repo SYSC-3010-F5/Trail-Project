@@ -6,7 +6,7 @@ public class RPi{
     int port;
 
 
-    RPi(int port, InetAddress ip){
+    RPi(InetAddress ip, int port){
         this.ip = ip;
         this.port = port;
     }
