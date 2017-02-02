@@ -2,76 +2,112 @@
 *Class:             Server.java
 *Project:           Trial Project
 *Author:            Nathaniel Charlebois
-*Date of Update:    30/01/2016
+*					Jason Van Kerkhoven
+*
+*Date of Update:    02/02/2016
 *Version:           1.0.0
 *
 *Purpose:           Manage the communication between two RPi and relay instructions
 *
-*Update Log:
+*Update Log:		v1.0.1
+*						- UI hooked in
+*						- some clean up + commenting
+*						- socket init now done internally by constructor
+*						- initConnection() has handshaking
+*						- sendSocket and receieveSocket combined to generalSocket
 *					v1.0.0
 *						- Added basic functionality
                         - Requires testing on a windows/linux machine
 */
 
 
+//import external libraries
 import java.net.*;
 import java.util.Scanner;
 
-
-public class Server {
-
-  DatagramSocket receiveSocket;
-  DatagramSocket sendSocket;
-  DatagramPacket receivePacket;
-  DatagramPacket sendPacket;
-
-  RPi RPi1;
-  RPi RPi2;
+//import packages
+import ui.SimpleUI;
 
 
-  private final static int PACKETSIZE = 100 ;
-
-    Server(){
+public class Server 
+{
+	//declaring static class constants
+	private final static int PACKETSIZE = 100 ;
+	private final static byte[] HANDSHAKE = {0x03,0x00,0x01,0x00};
+	
+	//declaring local instance variables
+	private SimpleUI ui;
+	private DatagramSocket generalSocket;
+	private DatagramPacket receivePacket;
+	private DatagramPacket sendPacket;		
+	private RPi rpi1;
+	private RPi rpi2;
+	
+	
+	//generic constructor
+    public Server()
+    {
+    	//initialize things
+    	ui = new SimpleUI("Simon Says");
         receivePacket = new DatagramPacket( new byte[PACKETSIZE], PACKETSIZE ) ;
         sendPacket = new DatagramPacket(new byte[PACKETSIZE], PACKETSIZE);
+        
+        //get the port the server will use
+    	ui.println("Beggining game setup...");
+        int receivePort = ui.getPort("Please enter the receivePort");
+        ui.println("Setting active port...");
+        try
+        {
+            generalSocket = new DatagramSocket(receivePort);	//TODO socket not binding
+        }
+        catch(SocketException  e)
+        {
+        	ui.printError("Socking binding error -- terminating program");
+        	ui.close();
+        	System.exit(0);
+            e.printStackTrace();
+        }
+        
+        //connect to RPi1 and RPi2
+        while(rpi1 == null)
+        {
+	        ui.println("Waiting for RPi1 to connect...");
+	        rpi1 = initConnection();
+        }
+        while(rpi2 == null)
+        {
+	        ui.println("Waiting for RPi2 to connect...");
+	        rpi2 = initConnection();
+        }
+        
+        ui.println("\nSetup complete!");
     }
 
 
-	public static void main(String[] args)
+    //initialize a connection with a Raspberry Pi
+    private RPi initConnection()
     {
-
-
-        //Init server
-        Server server = new Server();
-
-        //Set desired receivePort
-        Scanner in = new Scanner (System.in);
-        System.out.print("Enter the receivePort >");
-        int receivePort = Integer.parseInt(in.nextLine());
-
-        //Init Sockets
-        server.socketInit(receivePort);
-
-
-        //Check for initial RPi connection
-        server.initConnection();
-
-    }
-
-   private void initConnection(){
-
        receivePacket();
        byte[] data = receivePacket.getData();
-       RPi1 = new RPi(0,null);
+       
+       //check if data is handshake
+       if(data.equals(HANDSHAKE))
+       {
+    	   return new RPi(receivePacket.getAddress(), receivePacket.getPort());
+       }
+       else
+       {
+    	   ui.println("Connection failed: Received packet did not complete handshake");
+    	   return null;
+       }
+    }
 
-
-   }
-
-   private void sendPacket(byte[] data, InetAddress host, int port){
+   private void sendPacket(byte[] data, RPi pi)
+   {
      try
      {
-        sendPacket = new DatagramPacket( data, data.length, host, port ) ;
-        sendSocket.send( sendPacket ) ;
+        sendPacket = new DatagramPacket(data, data.length, pi.ip, pi.port) ;
+        generalSocket.send(sendPacket);
      }
      catch( Exception e )
      {
@@ -82,11 +118,9 @@ public class Server {
    private void receivePacket(){
       try
       {
-            System.out.println( "Receiving on port " + receiveSocket.getPort() ) ;
-
-            receiveSocket.receive( receivePacket ) ;
-
-            System.out.println( receivePacket.getAddress() + " " + receivePacket.getPort() + ": " + new String(receivePacket.getData()).trim() ) ;
+            ui.println("Waiting for packet on port: " + generalSocket.getPort()) ;
+            generalSocket.receive(receivePacket) ;
+            ui.println( receivePacket.getAddress() + " " + receivePacket.getPort() + ": " + new String(receivePacket.getData()).trim() ) ;
 
       }
       catch( Exception e )
@@ -95,33 +129,21 @@ public class Server {
       }
    }
 
-   private void shutdown(){
-        if( receiveSocket != null )
-            receiveSocket.close();
-        if( sendSocket != null )
-            sendSocket.close();
-
+   
+   //release ports
+   public void shutdown()
+   {
+        if( generalSocket != null )
+        {
+        	generalSocket.close();
+        }
    }
-
-
-   //Seems to set both ports to -1 on my mac(strange permissions)
-   //Gotta try on a windows machine
-   private void socketInit(int port){
-
-       try{
-           receiveSocket = new DatagramSocket( port );
-           System.out.println("receiveSocket set to port " + receiveSocket.getPort());
-       }
-       catch(Exception e){
-           e.printStackTrace();
-       }
-
-       try{
-           sendSocket = new DatagramSocket();
-           System.out.println("sendSocket set to port " + sendSocket.getPort());
-       }
-       catch(Exception e){
-           e.printStackTrace();
-       }
+   
+   
+   //run an instance of server
+   public static void main(String[] args)
+   {
+       //Init server
+       Server server = new Server();
    }
 }
