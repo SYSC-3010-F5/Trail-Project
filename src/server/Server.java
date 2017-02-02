@@ -85,6 +85,8 @@ public class Server
         {
 	        ui.println("Waiting for RPi1 to connect...");
 	        rpi1 = initConnection();
+			String data = "Test";
+			sendPacket(data.getBytes(),rpi1);
         }
         while(rpi2 == null)
         {
