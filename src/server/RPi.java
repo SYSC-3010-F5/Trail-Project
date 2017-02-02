@@ -30,4 +30,9 @@ public class RPi{
         this.ip = ip;
         this.port = port;
     }
+
+    public String toString(){
+        return ("IP: " + ip + ", Port: " + port);
+
+    }
 }

@@ -100,16 +100,7 @@ public class Server
     private RPi initConnection()
     {
        receivePacket();
-       //check if data from correct port
-       if(receivePacket.getPort() == RPI_PORT)
-       {
-    	   return new RPi(receivePacket.getAddress(), receivePacket.getPort());
-       }
-       else
-       {
-    	   ui.println("Connection failed: Received packet did not originate from port <" + RPI_PORT + ">");
-    	   return null;
-       }
+	   return new RPi(receivePacket.getAddress(), receivePacket.getPort());
     }
 
    private void sendPacket(byte[] data, RPi pi)
@@ -157,20 +148,22 @@ public class Server
 	   System.out.println("The randomButton is: " + firstButton);
 	   sendPacket(firstButton, rpi1);
 
-	   throughput();
 
+	   RPi winner = throughput();
+	   ui.println(winner.toString() + " is the winner!");
 
    }
 
    //Passes the data from one RPi to the other
-   private void throughput(){
-	   //Wait to receive a packet
-	   receivePacket();
+   private RPi throughput(){
+
 	   //Context switching var
 	   int source = 1;
 
 	   //Forward the packet towards the target RPi
 	   while(receivePacket.getData()[0]!='!'){
+		  //Wait to receive a packet
+		  receivePacket();
 		  if(source == 1){
 			  sendPacket(receivePacket.getData(), rpi2);
 			  source = 2;
@@ -179,7 +172,12 @@ public class Server
 			  source = 1;
 		  }
 	   }
-	   return;
+	   if(source == 1){
+		   return rpi1;
+	   }
+	   else{
+		   return rpi2;
+	   }
 
    }
 
