@@ -70,7 +70,7 @@ public class Server
         ui.println("Setting active port...");
         try
         {
-            generalSocket = new DatagramSocket(receivePort);	//TODO socket not binding
+            generalSocket = new DatagramSocket(receivePort);
         }
         catch(SocketException  e)
         {
