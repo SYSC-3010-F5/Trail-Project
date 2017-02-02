@@ -13,7 +13,7 @@
 *						- UI hooked in
 *						- some clean up + commenting
 *						- socket init now done internally by constructor
-*						- initConnection() has handshaking
+*						- initConnection() using ports
 *						- sendSocket and receieveSocket combined to generalSocket
 *					v1.0.0
 *						- Added basic functionality
@@ -36,7 +36,7 @@ public class Server
 {
 	//declaring static class constants
 	private final static int PACKETSIZE = 100 ;
-	private final static byte[] HANDSHAKE = {0x03,0x00,0x01,0x00};
+	private final static int RPI_PORT = 3010;
 
 	//declaring local instance variables
 	private SimpleUI ui;
@@ -91,16 +91,15 @@ public class Server
     private RPi initConnection()
     {
        receivePacket();
-       byte[] data = receivePacket.getData();
-
-       //check if data is handshake
-       if(data.equals(HANDSHAKE))
+	    
+       //check if data from correct port
+       if(receivePacket.getPort() == RPI_PORT)
        {
     	   return new RPi(receivePacket.getAddress(), receivePacket.getPort());
        }
        else
        {
-    	   ui.println("Connection failed: Received packet did not complete handshake");
+    	   ui.println("Connection failed: Received packet did not originate from port <" + RPI_PORT + ">");
     	   return null;
        }
     }
