@@ -65,7 +65,7 @@ public class Server
         sendPacket = new DatagramPacket(new byte[PACKETSIZE], PACKETSIZE);
 
         //get the port the server will use
-    	ui.println("Beggining game setup...");
+    	ui.println("Beginning game setup...");
         int receivePort = ui.getPort("Please enter the receivePort");
         ui.println("Setting active port...");
         try
@@ -164,8 +164,12 @@ public class Server
 
    //Passes the data from one RPi to the other
    private void throughput(){
+	   //Wait to receive a packet
 	   receivePacket();
+	   //Context switching var
 	   int source = 1;
+
+	   //Forward the packet towards the target RPi
 	   while(receivePacket.getData()[0]!='!'){
 		  if(source == 1){
 			  sendPacket(receivePacket.getData(), rpi2);
