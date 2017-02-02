@@ -100,8 +100,6 @@ public class Server
     private RPi initConnection()
     {
        receivePacket();
-
-	    
        //check if data from correct port
        if(receivePacket.getPort() == RPI_PORT)
        {
@@ -112,7 +110,6 @@ public class Server
     	   ui.println("Connection failed: Received packet did not originate from port <" + RPI_PORT + ">");
     	   return null;
        }
-       return new RPi(receivePacket.getAddress(), receivePacket.getPort());
     }
 
    private void sendPacket(byte[] data, RPi pi)
