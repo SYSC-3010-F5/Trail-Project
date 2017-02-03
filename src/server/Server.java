@@ -5,7 +5,7 @@
 *					Jason Van Kerkhoven
 *
 *Date of Update:    02/02/2016
-*Version:           1.0.0
+*Version:           1.0.2
 *
 *Purpose:           Manage the communication between two RPi and relay instructions
 *
@@ -63,14 +63,15 @@ public class Server
     	ui = new SimpleUI("Simon Says");
         receivePacket = new DatagramPacket( new byte[PACKETSIZE], PACKETSIZE ) ;
         sendPacket = new DatagramPacket(new byte[PACKETSIZE], PACKETSIZE);
+		firstButton = new byte[1];
 
         //get the port the server will use
-    	ui.println("Beggining game setup...");
+    	ui.println("Beginning game setup...");
         int receivePort = ui.getPort("Please enter the receivePort");
         ui.println("Setting active port...");
         try
         {
-            generalSocket = new DatagramSocket(receivePort);	//TODO socket not binding
+            generalSocket = new DatagramSocket(receivePort);
         }
         catch(SocketException  e)
         {
@@ -100,26 +101,22 @@ public class Server
     private RPi initConnection()
     {
        receivePacket();
-
-	    
-       //check if data from correct port
-       if(receivePacket.getPort() == RPI_PORT)
-       {
-    	   return new RPi(receivePacket.getAddress(), receivePacket.getPort());
-       }
-       else
-       {
-    	   ui.println("Connection failed: Received packet did not originate from port <" + RPI_PORT + ">");
-    	   return null;
-       }
-       return new RPi(receivePacket.getAddress(), receivePacket.getPort());
+	   return new RPi(receivePacket.getAddress(), receivePacket.getPort());
     }
 
    private void sendPacket(byte[] data, RPi pi)
    {
+	   String s = "";
+	   for(byte b : data)
+	   {
+		  s += ""+b;
+	   }
+	   ui.println(s);
+	   
      try
      {
         sendPacket = new DatagramPacket(data, data.length, pi.ip, pi.port) ;
+        
         generalSocket.send(sendPacket);
      }
      catch( Exception e )
@@ -131,10 +128,22 @@ public class Server
    private void receivePacket(){
       try
       {
+			receivePacket = new DatagramPacket( new byte[PACKETSIZE], PACKETSIZE );
+			
     		ui.println("Waiting for packet on port: " + generalSocket.getLocalPort()) ;
         	generalSocket.receive(receivePacket) ;
-			ui.println( receivePacket.getAddress() + " " + receivePacket.getPort() + ": " + new String(receivePacket.getData()).trim() ) ;
-
+			ui.println( receivePacket.getAddress() + " " + receivePacket.getPort() + ": \"" + new String(receivePacket.getData()).trim() +"\"" ) ;
+			
+			byte[] data = new byte[receivePacket.getLength()];
+			ui.println("Length: " + receivePacket.getLength());
+			data = receivePacket.getData();
+			ui.println("Executing dump\n-----------");
+			ui.println("" + data[0]);
+			ui.println("" + data[1]);
+			ui.println("" + data[2]);
+			ui.println("" + data[3]);
+			ui.println("" + data[4]);
+			ui.println("" + data[5]);
       }
       catch( Exception e )
       {
@@ -160,30 +169,54 @@ public class Server
 	   System.out.println("The randomButton is: " + firstButton);
 	   sendPacket(firstButton, rpi1);
 
-	   throughput();
 
-
+	   RPi winner = throughput();
+	   ui.println(winner.toString() + " is the winner!");
+	
    }
 
    //Passes the data from one RPi to the other
-   private void throughput(){
-	   receivePacket();
+   private RPi throughput(){
+
+	   //Context switching var
 	   int source = 1;
+
+	   //Forward the packet towards the target RPi
 	   while(receivePacket.getData()[0]!='!'){
-		  if(source == 1){
-			  sendPacket(receivePacket.getData(), rpi2);
-			  source = 2;
-		  }else{
-			  sendPacket(receivePacket.getData(), rpi1);
-			  source = 1;
+		  //Wait to receive a packet
+		  receivePacket();
+		  
+		  byte toSend[] = new byte[receivePacket.getLength()];
+		  byte[] temp = receivePacket.getData();
+		  for(int i=0; i<receivePacket.getLength(); i++)
+		  {
+			  toSend[i] = temp[i];
+		  }
+		  
+		  if(receivePacket.getData()[0]!='!')
+		  {
+			  if(source == 1){
+				  sendPacket(toSend, rpi2);
+				  source = 2;
+			  }else{
+				  sendPacket(toSend, rpi1);
+				  source = 1;
+			  }
 		  }
 	   }
-	   return;
+	   
+	   if(source == 1){
+		   return rpi1;
+	   }
+	   else{
+		   return rpi2;
+	   }
 
    }
 
    //Returns a value between min-max inclusive
    private int randButton(int min, int max){
+	   rand = new Random();
 	   return rand.nextInt((max - min) + 1) + min;
    }
 
