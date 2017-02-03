@@ -5,7 +5,7 @@
 *					Jason Van Kerkhoven
 *
 *Date of Update:    02/02/2016
-*Version:           1.0.0
+*Version:           1.0.2
 *
 *Purpose:           Manage the communication between two RPi and relay instructions
 *
@@ -63,6 +63,7 @@ public class Server
     	ui = new SimpleUI("Simon Says");
         receivePacket = new DatagramPacket( new byte[PACKETSIZE], PACKETSIZE ) ;
         sendPacket = new DatagramPacket(new byte[PACKETSIZE], PACKETSIZE);
+		firstButton = new byte[1];
 
         //get the port the server will use
     	ui.println("Beginning game setup...");
@@ -105,9 +106,17 @@ public class Server
 
    private void sendPacket(byte[] data, RPi pi)
    {
+	   String s = "";
+	   for(byte b : data)
+	   {
+		  s += ""+b;
+	   }
+	   ui.println(s);
+	   
      try
      {
         sendPacket = new DatagramPacket(data, data.length, pi.ip, pi.port) ;
+        
         generalSocket.send(sendPacket);
      }
      catch( Exception e )
@@ -119,10 +128,22 @@ public class Server
    private void receivePacket(){
       try
       {
+			receivePacket = new DatagramPacket( new byte[PACKETSIZE], PACKETSIZE );
+			
     		ui.println("Waiting for packet on port: " + generalSocket.getLocalPort()) ;
         	generalSocket.receive(receivePacket) ;
-			ui.println( receivePacket.getAddress() + " " + receivePacket.getPort() + ": " + new String(receivePacket.getData()).trim() ) ;
-
+			ui.println( receivePacket.getAddress() + " " + receivePacket.getPort() + ": \"" + new String(receivePacket.getData()).trim() +"\"" ) ;
+			
+			byte[] data = new byte[receivePacket.getLength()];
+			ui.println("Length: " + receivePacket.getLength());
+			data = receivePacket.getData();
+			ui.println("Executing dump\n-----------");
+			ui.println("" + data[0]);
+			ui.println("" + data[1]);
+			ui.println("" + data[2]);
+			ui.println("" + data[3]);
+			ui.println("" + data[4]);
+			ui.println("" + data[5]);
       }
       catch( Exception e )
       {
@@ -151,7 +172,7 @@ public class Server
 
 	   RPi winner = throughput();
 	   ui.println(winner.toString() + " is the winner!");
-
+	
    }
 
    //Passes the data from one RPi to the other
@@ -164,14 +185,26 @@ public class Server
 	   while(receivePacket.getData()[0]!='!'){
 		  //Wait to receive a packet
 		  receivePacket();
-		  if(source == 1){
-			  sendPacket(receivePacket.getData(), rpi2);
-			  source = 2;
-		  }else{
-			  sendPacket(receivePacket.getData(), rpi1);
-			  source = 1;
+		  
+		  byte toSend[] = new byte[receivePacket.getLength()];
+		  byte[] temp = receivePacket.getData();
+		  for(int i=0; i<receivePacket.getLength(); i++)
+		  {
+			  toSend[i] = temp[i];
+		  }
+		  
+		  if(receivePacket.getData()[0]!='!')
+		  {
+			  if(source == 1){
+				  sendPacket(toSend, rpi2);
+				  source = 2;
+			  }else{
+				  sendPacket(toSend, rpi1);
+				  source = 1;
+			  }
 		  }
 	   }
+	   
 	   if(source == 1){
 		   return rpi1;
 	   }
@@ -183,6 +216,7 @@ public class Server
 
    //Returns a value between min-max inclusive
    private int randButton(int min, int max){
+	   rand = new Random();
 	   return rand.nextInt((max - min) + 1) + min;
    }
 
