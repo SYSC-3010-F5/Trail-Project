@@ -24,21 +24,26 @@ port = 0
 gpSocket = 0
 
 
+
 #DEFINING FUNCTIONS
 ####################################################
 #send data to IP, on port specified at runtime
 def sendPacket(toSend):
 	gpSocket.sendto(toSend.encode('utf-8'), (IP, port))
 	
+	
+	
+#send data to IP, on port specified at runtime
 def sendPacketByteArr(byteArr):
 	gpSocket.sendto(byteArr, (IP, port))
+	
+	
 	
 #receive data on gpsocket
 def receivePacket():
 	print("Waiting for packet on port: ", gpSocket.getsockname()[1])
 	data, address = gpSocket.recvfrom(port)
 	print("Packet received!")
-	print(data)
 	return data
 
 
@@ -48,14 +53,14 @@ def getButton():
 	#get user button press
 	btn = [0,0,0]
 	while(btn[0] == 0 and btn[1] == 0 and btn[2] == 0): 
-		btn[0] = pfio.digital_read(0)
-		btn[1] = pfio.digital_read(1)
-		btn[2] = pfio.digital_read(2)
+		btn[0] = pfio.digital_read(3)
+		btn[1] = pfio.digital_read(2)
+		btn[2] = pfio.digital_read(1)
 	
 	#wait for buttons to be release
-	while(pfio.digital_read(0) != 0 or pfio.digital_read(1) != 0 or pfio.digital_read(2) != 0):
+	while(pfio.digital_read(3) != 0 or pfio.digital_read(2) != 0 or pfio.digital_read(1) != 0):
 		#waste time
-		empty=0
+		sleep(0.125)
 
 	for i in range(0,3):
 		if(btn[i] == 1):
